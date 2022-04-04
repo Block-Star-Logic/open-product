@@ -20,11 +20,11 @@ contract OpenProduct is OpenRolesSecure, IOpenProduct {
     mapping(string=>address) featureManagerAddressByFeature; 
     mapping(string=>uint256) featureFeeByFeature; 
 
-    string productManagerRole = "PRODUCT_MANAGER_ROLE";
-    string openAdminRole = "RESERVED_OPEN_ADMIN_ROLE";
+    string productManagerRole           = "PRODUCT_MANAGER_ROLE";
+    string openAdminRole                = "RESERVED_OPEN_ADMIN_ROLE";
 
-    string registerCA                   = "RESERVED_OPEN_REGISTER";
-    string roleManagerCA                = "RESERVED_OPEN_ROLES";
+    string registerCA                   = "RESERVED_OPEN_REGISTER_CORE";
+    string roleManagerCA                = "RESERVED_OPEN_ROLES_CORE";
 
     string name; 
     uint256 id; 

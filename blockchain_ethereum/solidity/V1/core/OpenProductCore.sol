@@ -25,8 +25,8 @@ contract OpenProductCore is OpenRolesSecure, IOpenRolesManaged, IOpenProductCore
     address[] products; 
     uint256[] ids; 
 
-    string registerCA       = "RESERVED_OPEN_REGISTER";
-    string roleManagerCA    = "RESERVED_OPEN_ROLES";
+    string registerCA       = "RESERVED_OPEN_REGISTER_CORE";
+    string roleManagerCA    = "RESERVED_OPEN_ROLES_CORE";
 
     address registryAddress; 
     IOpenRegister registry; 
