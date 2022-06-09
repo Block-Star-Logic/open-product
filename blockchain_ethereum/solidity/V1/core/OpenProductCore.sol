@@ -1,35 +1,40 @@
 // SPDX-License-Identifier: APACHE-2.0
 
-pragma solidity >=0.8.0 <0.9.0;
+pragma solidity ^0.8.14;
 
+import "https://github.com/Block-Star-Logic/open-version/blob/e161e8a2133fbeae14c45f1c3985c0a60f9a0e54/blockchain_ethereum/solidity/V1/interfaces/IOpenVersion.sol";
 
-import "https://github.com/Block-Star-Logic/open-roles/blob/fc410fe170ac2d608ea53e3760c8691e3c5b550e/blockchain_ethereum/solidity/v2/contracts/interfaces/IOpenRolesManaged.sol";
-import "https://github.com/Block-Star-Logic/open-roles/blob/e7813857f186df0043c84f0cca42478584abe09c/blockchain_ethereum/solidity/v2/contracts/core/OpenRolesSecure.sol";
+import "https://github.com/Block-Star-Logic/open-roles/blob/732f4f476d87bece7e53bd0873076771e90da7d5/blockchain_ethereum/solidity/v2/contracts/interfaces/IOpenRolesManaged.sol";
+import "https://github.com/Block-Star-Logic/open-roles/blob/732f4f476d87bece7e53bd0873076771e90da7d5/blockchain_ethereum/solidity/v2/contracts/core/OpenRolesSecureCore.sol";
+
 import "https://github.com/Block-Star-Logic/open-register/blob/03fb07e69bfdfaa6a396a063988034de65bdab3d/blockchain_ethereum/solidity/V1/interfaces/IOpenRegister.sol";
 
+
 import "../interfaces/IOpenProductCore.sol";
+import "../interfaces/IOpenProductSecuritization.sol";
 
 import "./OpenProduct.sol";
- 
 
-contract OpenProductCore is OpenRolesSecure, IOpenRolesManaged, IOpenProductCore { 
+contract OpenProductCore is OpenRolesSecureCore, IOpenVersion, IOpenRolesManaged, IOpenProductCore { 
 
     using LOpenUtilities for address; 
 
     string name = "RESERVED_OPEN_PRODUCT_CORE"; 
-    uint256 version = 1; 
+    uint256 version = 5; 
 
-    string openAdminRole = "RESERVED_OPEN_ADMIN_ROLE";
-    string productManagerRole = "PRODUCT_MANAGER_ROLE";
+    string openAdminRole        = "RESERVED_OPEN_ADMIN_ROLE";
+    string productManagerRole   = "PRODUCT_MANAGER_ROLE";
 
     address[] products; 
     uint256[] ids; 
 
-    string registerCA       = "RESERVED_OPEN_REGISTER_CORE";
-    string roleManagerCA    = "RESERVED_OPEN_ROLES_CORE";
+    string registerCA               = "RESERVED_OPEN_REGISTER_CORE";
+    string roleManagerCA            = "RESERVED_OPEN_ROLES_CORE";
+    string productSecurityCA        = "RESERVED_OPEN_PRODUCT_SECURITIZATION";
 
     address registryAddress; 
     IOpenRegister registry; 
+    IOpenProductSecuritization security; 
 
     string [] roleNames = [openAdminRole, productManagerRole]; 
 
@@ -45,12 +50,16 @@ contract OpenProductCore is OpenRolesSecure, IOpenRolesManaged, IOpenProductCore
 
 
     //@ todo implement full product management features 
-    constructor (address _registryAddress){ 
+    constructor (address _registryAddress, string memory _dappName) OpenRolesSecureCore(_dappName) { 
         registryAddress = _registryAddress;   
         registry = IOpenRegister(_registryAddress); 
         setRoleManager(registry.getAddress(roleManagerCA));
+
         addConfigurationItem(_registryAddress);
         addConfigurationItem(address(roleManager));
+        security = IOpenProductSecuritization(registry.getAddress(productSecurityCA));
+        addConfigurationItem(address(security));
+        initDefaulFunctionsForRole();
     }
 
     function getVersion() override view external returns (uint256 _version){
@@ -94,24 +103,27 @@ contract OpenProductCore is OpenRolesSecure, IOpenRolesManaged, IOpenProductCore
     }
 
     function createProduct(string memory _name, uint256 _price, string memory _currency, address _erc20) override external returns (address _productAddress) {
-        require(isSecure(productManagerRole, "createProduct")," admin only ");
+        require(isSecure(productManagerRole, "createProduct")," product admin only ");
         uint256 productId_ = productIndex++;
         ids.push(productId_);
-        _productAddress = address(new OpenProduct(address(registry), productId_, _name, _price, _currency, _erc20));
+        _productAddress = address(new OpenProduct( address(registry), productId_, _name, _price, _currency, _erc20));
+        security.secureProduct(_productAddress);
         productsByName[_name].push(_productAddress); 
         addProductInternal(_productAddress);
         return _productAddress;
     }
 
     function removeProduct(address _productAddress) override external returns (bool _removed) {
-        require(isSecure(productManagerRole, "removeProduct")," admin only ");
+        require(isSecure(productManagerRole, "removeProduct")," product admin only ");
         return removeProductInternal(_productAddress);        
     }
 
     function notifyChangeOfAddress() external returns (bool _recieved){
         require(isSecure(openAdminRole, "notifyChangeOfAddress")," admin only ");    
         registry                = IOpenRegister(registry.getAddress(registerCA)); // make sure this is NOT a zero address                   
-        roleManager             = IOpenRoles(registry.getAddress(roleManagerCA));    
+        roleManager             = IOpenRoles(registry.getAddress(roleManagerCA));  
+        security                = IOpenProductSecuritization(registry.getAddress(productSecurityCA));
+        addConfigurationItem(address(security));  
         addConfigurationItem(address(registry));   
         addConfigurationItem(address(roleManager));         
         return true; 
@@ -146,8 +158,9 @@ contract OpenProductCore is OpenRolesSecure, IOpenRolesManaged, IOpenProductCore
 
     function initDefaulFunctionsForRole() internal returns (bool _initiated){
         hasDefaultFunctionsByRole[openAdminRole] = true; 
-        hasDefaultFunctionsByRole[productManagerRole] = true; 
         defaultFunctionsByRole[openAdminRole].push("notifyChangeOfAddress");
+
+        hasDefaultFunctionsByRole[productManagerRole] = true; 
         defaultFunctionsByRole[productManagerRole].push("createProduct");
         defaultFunctionsByRole[productManagerRole].push("removeProduct");
         return true;

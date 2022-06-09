@@ -1,24 +1,29 @@
 // SPDX-License-Identifier: APACHE-2.0
-
 pragma solidity >=0.8.0 <0.9.0;
 
 
-import "https://github.com/Block-Star-Logic/open-roles/blob/e7813857f186df0043c84f0cca42478584abe09c/blockchain_ethereum/solidity/v2/contracts/core/OpenRolesSecure.sol";
+import "https://github.com/Block-Star-Logic/open-roles/blob/732f4f476d87bece7e53bd0873076771e90da7d5/blockchain_ethereum/solidity/v2/contracts/core/OpenRolesSecureDerivative.sol";
+
 import "https://github.com/Block-Star-Logic/open-register/blob/03fb07e69bfdfaa6a396a063988034de65bdab3d/blockchain_ethereum/solidity/V1/interfaces/IOpenRegister.sol";
 
 import "../interfaces/IOpenProduct.sol";
 
 
-contract OpenProduct is OpenRolesSecure, IOpenProduct { 
+
+contract OpenProduct is OpenRolesSecureDerivative, IOpenProduct { 
+
+    using LOpenUtilities for string; 
 
     IOpenRegister registry; 
-
-    mapping(string=>address) featureADDRESSValueByFeatureName; 
-    mapping(string=>string) featureSTRValueByFeatureName; 
-    mapping(string=>uint256) featureUINTValueByFeatureName; 
-    mapping(string=>bool) hasFeatureByFeatureName; 
-    mapping(string=>address) featureManagerAddressByFeature; 
-    mapping(string=>uint256) featureFeeByFeature; 
+    
+    mapping(string=>address)    featureADDRESSValueByFeatureName; 
+    mapping(string=>string)     featureSTRValueByFeatureName; 
+    mapping(string=>uint256)    featureUINTValueByFeatureName; 
+    mapping(string=>bool)       hasFeatureByFeatureName; 
+    mapping(string=>string)     typeByFeatureName; 
+    
+    mapping(string=>address)    featureManagerAddressByFeature; 
+    mapping(string=>uint256)    featureFeeByFeature; 
 
     string productManagerRole           = "PRODUCT_MANAGER_ROLE";
     string openAdminRole                = "RESERVED_OPEN_ADMIN_ROLE";
@@ -26,10 +31,11 @@ contract OpenProduct is OpenRolesSecure, IOpenProduct {
     string registerCA                   = "RESERVED_OPEN_REGISTER_CORE";
     string roleManagerCA                = "RESERVED_OPEN_ROLES_CORE";
 
+
+    string priceKey                     = "PRODUCT_PRICE";
+
     string name; 
     uint256 id; 
-
-    string priceKey = "PRODUCT_PRICE";
 
     struct Price {
         string currency; 
@@ -41,14 +47,13 @@ contract OpenProduct is OpenRolesSecure, IOpenProduct {
 
     constructor(address _registryAddress, uint256 _id, string memory _name, uint256 _priceValue, string memory _priceCurrency, address _priceContract) {
         registry = IOpenRegister(_registryAddress);
-        setRoleManager(registry.getAddress(roleManagerCA));
+        setRoleManager(registry.getAddress(roleManagerCA));       
         addConfigurationItem(_registryAddress);
-        addConfigurationItem(address(roleManager));
+        addConfigurationItem(address(roleManager));      
 
         id = _id;        
         name = _name; 
-        setPriceInternal(_priceValue, _priceCurrency, _priceContract);
-                
+        setPriceInternal(_priceValue, _priceCurrency, _priceContract);                
     }
 
     function getId() override view external returns (uint _id){
@@ -95,24 +100,37 @@ contract OpenProduct is OpenRolesSecure, IOpenProduct {
         return featureManagerAddressByFeature[_feature];
     }
 
-    function setFeatureUINTValue(string memory _featureName, uint256 _featureValue)   external returns(bool _set) {        
+    function setFeatureUINTValue(string memory _featureName, uint256 _featureValue) external returns(bool _set) {        
         require(isSecure(productManagerRole, "setFeatureUINTValue")," product manager only ");
+        require(!hasFeatureByFeatureName[_featureName], string(" known feature of type ").append(typeByFeatureName[_featureName]));       
         return setFeatureUINTValueInternal(_featureName, _featureValue);
     }
 
-    function setFeatureSTRValue(string memory _featureName, string memory _featureValue)   external returns(bool _set) {
+    function setFeatureSTRValue(string memory _featureName, string memory _featureValue) external returns(bool _set) {
         require(isSecure(productManagerRole, "setFeatureSTRValue")," product manager only ");
+        require(!hasFeatureByFeatureName[_featureName], string(" known feature of type ").append(typeByFeatureName[_featureName]));        
         return setFeatureSTRValueInternal(_featureName, _featureValue);
     }
 
-    function setFeatureADDRESSValue(string memory _featureName, address _featureValue)   external returns(bool _set) {
+    function setFeatureADDRESSValue(string memory _featureName, address _featureValue) external returns(bool _set) {
         require(isSecure(productManagerRole, "setFeatureADDRESSValue")," product manager only ");
+        require(!hasFeatureByFeatureName[_featureName], string(" known feature of type ").append(typeByFeatureName[_featureName]));        
         return setFeatureADDRESSValueInternal(_featureName, _featureValue);
     }
 
-    function removeFeatureUINTValue(string memory _featureName) external returns (bool _removed) {
-        require(isSecure(productManagerRole, "removeFeatureUINTValue")," product manager only "); 
-        delete featureUINTValueByFeatureName[_featureName];
+    function removeFeatureValue(string memory _featureName) external returns (bool _removed) {
+        require(isSecure(productManagerRole, "removeFeatureValue")," product manager only "); 
+        string memory featureType_ = typeByFeatureName[_featureName]; 
+        if(featureType_.isEqual("STR")) {
+            delete featureSTRValueByFeatureName[_featureName];
+        }
+        if(featureType_.isEqual("UINT")) {
+            delete featureUINTValueByFeatureName[_featureName];
+
+        }
+        if(featureType_.isEqual("ADDRESS")) {
+            delete featureADDRESSValueByFeatureName[_featureName];
+        }
         delete hasFeatureByFeatureName[_featureName];
         return true; 
     }
@@ -148,8 +166,8 @@ contract OpenProduct is OpenRolesSecure, IOpenProduct {
         addConfigurationItem(address(roleManager));         
         return true; 
     }
-    //=============================================== INTERNAL ==========================================
 
+    //=============================================== INTERNAL ==========================================
 
     function setPriceInternal(uint256 _priceValue, string memory _priceCurrency, address _priceContract) internal returns (bool _set) {
             //@todo add product admin feature 
@@ -165,18 +183,21 @@ contract OpenProduct is OpenRolesSecure, IOpenProduct {
     function setFeatureUINTValueInternal(string memory _name, uint256 _value)  internal returns (bool _set) {
         featureUINTValueByFeatureName[_name] = _value;
         hasFeatureByFeatureName[_name] = true;
+        typeByFeatureName[_name] = "UINT";
         return true; 
     }
 
     function setFeatureSTRValueInternal(string memory _name, string memory _value)  internal returns (bool _set) {
         featureSTRValueByFeatureName[_name] = _value;
         hasFeatureByFeatureName[_name] = true;
+        typeByFeatureName[_name] = "STR";
         return true; 
     }
 
     function setFeatureADDRESSValueInternal(string memory _name, address _value)  internal returns (bool _set) {
         featureADDRESSValueByFeatureName[_name] = _value;
         hasFeatureByFeatureName[_name] = true;
+        typeByFeatureName[_name] = "ADDRESS";
         return true; 
     }
 
