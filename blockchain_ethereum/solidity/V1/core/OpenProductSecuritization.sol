@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: APACHE-2.0
-pragma solidity ^0.8.14;
+pragma solidity ^0.8.15;
 
 
 import "https://github.com/Block-Star-Logic/open-roles/blob/732f4f476d87bece7e53bd0873076771e90da7d5/blockchain_ethereum/solidity/v2/contracts/core/OpenRolesSecureCore.sol";
+
 
 import "https://github.com/Block-Star-Logic/open-roles/blob/fc410fe170ac2d608ea53e3760c8691e3c5b550e/blockchain_ethereum/solidity/v2/contracts/interfaces/IOpenRolesDerivativesAdmin.sol";
 
 import "https://github.com/Block-Star-Logic/open-roles/blob/732f4f476d87bece7e53bd0873076771e90da7d5/blockchain_ethereum/solidity/v2/contracts/interfaces/IOpenRolesManaged.sol";
 
+
 import "https://github.com/Block-Star-Logic/open-register/blob/a14334297b2953d3531001bb8624239866d346be/blockchain_ethereum/solidity/V1/interfaces/IOpenRegister.sol";
+
 
 import "../interfaces/IOpenProductSecuritization.sol";
 
@@ -17,7 +20,7 @@ contract OpenProductSecuritization is OpenRolesSecureCore, IOpenVersion, IOpenRo
     IOpenRegister registry; 
     IOpenRolesDerivativesAdmin iorda; 
 
-    uint256 version                     = 2; 
+    uint256 version                     = 3; 
     string name                         = "RESERVED_OPEN_PRODUCT_SECURITIZATION"; 
 
     string registerCA                   = "RESERVED_OPEN_REGISTER_CORE";
@@ -27,7 +30,7 @@ contract OpenProductSecuritization is OpenRolesSecureCore, IOpenVersion, IOpenRo
 
     string openAdminRole                = "RESERVED_OPEN_ADMIN_ROLE";
 
-    string productType                  = "PRODUCT_TYPE";
+    string productType                  = "OPEN_PRODUCT_TYPE";
 
     string [] roleNames                 = [dappProductManagerRole, openAdminRole]; 
 

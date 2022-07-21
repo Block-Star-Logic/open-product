@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: APACHE-2.0
-pragma solidity ^0.8.14;
+pragma solidity ^0.8.15;
 
 
 import "https://github.com/Block-Star-Logic/open-roles/blob/732f4f476d87bece7e53bd0873076771e90da7d5/blockchain_ethereum/solidity/v2/contracts/core/OpenRolesSecureDerivative.sol";
 
-import "https://github.com/Block-Star-Logic/open-register/blob/03fb07e69bfdfaa6a396a063988034de65bdab3d/blockchain_ethereum/solidity/V1/interfaces/IOpenRegister.sol";
+import "https://github.com/Block-Star-Logic/open-register/blob/7b680903d8bb0443b9626a137e30a4d6bb1f6e43/blockchain_ethereum/solidity/V1/interfaces/IOpenRegister.sol";
 
 import "../interfaces/IOpenProduct.sol";
 
@@ -88,7 +88,7 @@ contract OpenProduct is OpenRolesSecureDerivative, IOpenProduct {
         return featureSTRValueByFeatureName[_featureName];
     }
 
-    function getFeatureUADDRESSValue(string memory _featureName) override view external returns (address _value){
+    function getFeatureADDRESSValue(string memory _featureName) override view external returns (address _value){
         return featureADDRESSValueByFeatureName[_featureName];
     }
 

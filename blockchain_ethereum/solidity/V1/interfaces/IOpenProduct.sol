@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: APACHE-2.0
 
-pragma solidity 0.8.14;
+pragma solidity ^0.8.15;
 
 interface IOpenProduct {
 
@@ -18,7 +18,7 @@ interface IOpenProduct {
 
     function getFeatureSTRValue(string memory _featureName) view external returns (string memory _value);
 
-    function getFeatureUADDRESSValue(string memory _featureName) view external returns (address _value);
+    function getFeatureADDRESSValue(string memory _featureName) view external returns (address _value);
 
     function getFeatureFee(string memory _featureName) view external returns (uint256 _value);
 
