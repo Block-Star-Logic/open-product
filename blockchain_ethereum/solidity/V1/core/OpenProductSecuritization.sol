@@ -4,11 +4,11 @@ pragma solidity ^0.8.15;
 
 import "https://github.com/Block-Star-Logic/open-roles/blob/732f4f476d87bece7e53bd0873076771e90da7d5/blockchain_ethereum/solidity/v2/contracts/core/OpenRolesSecureCore.sol";
 
+import "https://github.com/Block-Star-Logic/open-roles/blob/b05dc8c6990fd6ba4f0b189e359ef762118d6cbe/blockchain_ethereum/solidity/v2/contracts/interfaces/IOpenRolesDerivativeTypesAdmin.sol";
 
 import "https://github.com/Block-Star-Logic/open-roles/blob/fc410fe170ac2d608ea53e3760c8691e3c5b550e/blockchain_ethereum/solidity/v2/contracts/interfaces/IOpenRolesDerivativesAdmin.sol";
 
 import "https://github.com/Block-Star-Logic/open-roles/blob/732f4f476d87bece7e53bd0873076771e90da7d5/blockchain_ethereum/solidity/v2/contracts/interfaces/IOpenRolesManaged.sol";
-
 
 import "https://github.com/Block-Star-Logic/open-register/blob/a14334297b2953d3531001bb8624239866d346be/blockchain_ethereum/solidity/V1/interfaces/IOpenRegister.sol";
 
@@ -18,13 +18,16 @@ import "../interfaces/IOpenProductSecuritization.sol";
 contract OpenProductSecuritization is OpenRolesSecureCore, IOpenVersion, IOpenRolesManaged, IOpenProductSecuritization {  
 
     IOpenRegister registry; 
+    IOpenRolesDerivativeTypesAdmin iordta; 
     IOpenRolesDerivativesAdmin iorda; 
 
-    uint256 version                     = 3; 
+
+    uint256 version                     = 5; 
     string name                         = "RESERVED_OPEN_PRODUCT_SECURITIZATION"; 
 
     string registerCA                   = "RESERVED_OPEN_REGISTER_CORE";
     string roleManagerCA                = "RESERVED_OPEN_ROLES_CORE";
+    string derivativeContractTypesAdminCA = "RESERVED_OPEN_ROLES_DERIVATIVE_TYPES_ADMIN";
 
     string dappProductManagerRole       = "DAPP_PRODUCT_MANAGER_ROLE";
 
@@ -34,6 +37,16 @@ contract OpenProductSecuritization is OpenRolesSecureCore, IOpenVersion, IOpenRo
 
     string [] roleNames                 = [dappProductManagerRole, openAdminRole]; 
 
+    string [] functions_ = ["setFeatureUINTValue", 
+                            "setFeatureSTRValue", 
+                            "setFeatureADDRESSValue", 
+                            "removeFeatureValue", 
+                            "setPrice", 
+                            "setFeatureFee", 
+                            "addFeatureManager", 
+                            "removeFeatureManager"];
+    string [] contractTypes_ = [productType];
+
     mapping(string=>bool) hasDefaultFunctionsByRole;
     mapping(string=>string[]) defaultFunctionsByRole;
 
@@ -41,9 +54,12 @@ contract OpenProductSecuritization is OpenRolesSecureCore, IOpenVersion, IOpenRo
 
     string productManagerRole           = "PRODUCT_MANAGER_ROLE";
 
-    string [] productLocalRoles         = [productManagerRole];
-    mapping(string=>string[]) productManagementFunctionsForProductByRole;
+    string [] productTypeRoles          = [dappProductManagerRole];
+
+    string [] productLocalRoles         = [productManagerRole, openAdminRole];
     
+    mapping(string=>string[]) productManagementFunctionsForProductByRole;
+    mapping(string=>string[]) productManagementFunctionsForProductTypeByRole;
 
     constructor(address _registryAddress, string memory _dapp) OpenRolesSecureCore(_dapp) { 
         
@@ -51,6 +67,8 @@ contract OpenProductSecuritization is OpenRolesSecureCore, IOpenVersion, IOpenRo
         
         setRoleManager(registry.getAddress(roleManagerCA));
        
+        iordta = IOpenRolesDerivativeTypesAdmin(registry.getAddress(derivativeContractTypesAdminCA));
+
         iorda = IOpenRolesDerivativesAdmin(roleManager.getDerivativeContractsAdmin(registry.getDapp()));   
         
         addConfigurationItem(_registryAddress);   
@@ -82,6 +100,16 @@ contract OpenProductSecuritization is OpenRolesSecureCore, IOpenVersion, IOpenRo
 
     function getDefaultFunctions(string memory _role) override view external returns (string [] memory _functions){
         return defaultFunctionsByRole[_role];
+    }
+
+    function initialiseTypes() external returns (bool _initialised) {
+        require(isSecure(openAdminRole, "initialiseTypes")," admin only "); 
+        iordta.addDerivativeContractTypes(contractTypes_);
+        for(uint256 x = 0; x < contractTypes_.length; x++) {
+            iordta.mapRolesToContractType(contractTypes_[x], productTypeRoles);
+        }
+        iordta.addFunctionsForRoleForDerivativeContactType(productType, dappProductManagerRole, functions_);
+        return true; 
     }
 
     function notifyChangeOfAddress() external returns (bool _recieved){
@@ -116,18 +144,16 @@ contract OpenProductSecuritization is OpenRolesSecureCore, IOpenVersion, IOpenRo
 
         hasDefaultFunctionsByRole[openAdminRole] = true; 
         defaultFunctionsByRole[openAdminRole].push("notifyChangeOfAddress");
+        defaultFunctionsByRole[openAdminRole].push("initialiseTypes"); 
         return true; 
     }
 
+
     function initDerivativeFunctionsForRoles() internal returns (bool _initiated) {
-        productManagementFunctionsForProductByRole[productManagerRole].push("setFeatureUINTValue");
-        productManagementFunctionsForProductByRole[productManagerRole].push("setFeatureSTRValue");
-        productManagementFunctionsForProductByRole[productManagerRole].push("setFeatureADDRESSValue");
-        productManagementFunctionsForProductByRole[productManagerRole].push("removeFeatureValue");
-        productManagementFunctionsForProductByRole[productManagerRole].push("setPrice");
-        productManagementFunctionsForProductByRole[productManagerRole].push("setFeatureFee");
-        productManagementFunctionsForProductByRole[productManagerRole].push("addFeatureManager");
-        productManagementFunctionsForProductByRole[productManagerRole].push("removeFeatureManager");
+                         
+        productManagementFunctionsForProductByRole[productManagerRole] = functions_; 
+  
+        productManagementFunctionsForProductByRole[openAdminRole].push("notifyChangeOfAddress");
         return true; 
     }
 
