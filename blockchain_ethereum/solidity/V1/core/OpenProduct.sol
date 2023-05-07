@@ -25,12 +25,12 @@ contract OpenProduct is OpenRolesSecureDerivative, IOpenProduct {
     mapping(string=>address)    featureManagerAddressByFeature; 
     mapping(string=>uint256)    featureFeeByFeature; 
 
+    string dappProductManagerRole       = "DAPP_PRODUCT_MANAGER_ROLE";
     string productManagerRole           = "PRODUCT_MANAGER_ROLE";
     string openAdminRole                = "RESERVED_OPEN_ADMIN_ROLE";
 
     string registerCA                   = "RESERVED_OPEN_REGISTER_CORE";
     string roleManagerCA                = "RESERVED_OPEN_ROLES_CORE";
-
 
     string priceKey                     = "PRODUCT_PRICE";
 
@@ -101,25 +101,29 @@ contract OpenProduct is OpenRolesSecureDerivative, IOpenProduct {
     }
 
     function setFeatureUINTValue(string memory _featureName, uint256 _featureValue) external returns(bool _set) {        
-        require(isSecure(productManagerRole, "setFeatureUINTValue")," product manager only ");
+        require(isSecure(productManagerRole, "setFeatureUINTValue") ||
+                isSecure(dappProductManagerRole,"setFeatureUINTValue" )," product manager only ");
         require(!hasFeatureByFeatureName[_featureName], string(" known feature of type ").append(typeByFeatureName[_featureName]));       
         return setFeatureUINTValueInternal(_featureName, _featureValue);
     }
 
     function setFeatureSTRValue(string memory _featureName, string memory _featureValue) external returns(bool _set) {
-        require(isSecure(productManagerRole, "setFeatureSTRValue")," product manager only ");
+        require(isSecure(productManagerRole, "setFeatureSTRValue") ||
+                isSecure(dappProductManagerRole,"setFeatureSTRValue" )," product manager only ");
         require(!hasFeatureByFeatureName[_featureName], string(" known feature of type ").append(typeByFeatureName[_featureName]));        
         return setFeatureSTRValueInternal(_featureName, _featureValue);
     }
 
     function setFeatureADDRESSValue(string memory _featureName, address _featureValue) external returns(bool _set) {
-        require(isSecure(productManagerRole, "setFeatureADDRESSValue")," product manager only ");
+        require(isSecure(productManagerRole, "setFeatureADDRESSValue") ||
+                isSecure(dappProductManagerRole,"setFeatureADDRESSValue" )," product manager only ");
         require(!hasFeatureByFeatureName[_featureName], string(" known feature of type ").append(typeByFeatureName[_featureName]));        
         return setFeatureADDRESSValueInternal(_featureName, _featureValue);
     }
 
     function removeFeatureValue(string memory _featureName) external returns (bool _removed) {
-        require(isSecure(productManagerRole, "removeFeatureValue")," product manager only "); 
+        require(isSecure(productManagerRole, "removeFeatureValue") ||
+                isSecure(dappProductManagerRole,"removeFeatureValue" )," product manager only ");
         string memory featureType_ = typeByFeatureName[_featureName]; 
         if(featureType_.isEqual("STR")) {
             delete featureSTRValueByFeatureName[_featureName];
@@ -136,24 +140,28 @@ contract OpenProduct is OpenRolesSecureDerivative, IOpenProduct {
     }
 
     function setPrice (uint256 _priceValue, string memory _priceCurrency, address _priceContract) external returns (bool _set) {
-        require(isSecure(productManagerRole, "setPrice")," product manager only ");
+        require(isSecure(productManagerRole, "setPrice") ||
+                isSecure(dappProductManagerRole,"setPrice" )," product manager only ");
         return setPriceInternal(_priceValue, _priceCurrency, _priceContract);        
     }
 
     function setFeatureFee(string memory _feature, uint256 _fee) external returns (bool _set){
-        require(isSecure(productManagerRole, "setFeatureFee")," product manager only ");
+        require(isSecure(productManagerRole, "setFeatureFee") ||
+                isSecure(dappProductManagerRole,"setFeatureFee" )," product manager only ");
         featureFeeByFeature[_feature] = _fee; 
         return true; 
     }
 
-    function addFeatureManager(string memory _feature, address featureManager) external returns (bool _added) {
-        require(isSecure(productManagerRole, "addFeatureManager")," product manager only ");
+    function addFeatureManager(string memory _feature, address featureManager) external returns (bool _added) {        
+        require(isSecure(productManagerRole, "addFeatureManager") ||
+                isSecure(dappProductManagerRole,"addFeatureManager" )," product manager only ");
         featureManagerAddressByFeature[_feature] = featureManager; 
         return true; 
     }
 
-    function removeFeatureManager(string memory _feature) external returns (bool _removed){
-        require(isSecure(productManagerRole, "removeFeatureManager")," product manager only ");
+    function removeFeatureManager(string memory _feature) external returns (bool _removed){        
+        require(isSecure(productManagerRole, "removeFeatureManager") ||
+                isSecure(dappProductManagerRole,"removeFeatureManager" )," product manager only ");
         delete featureManagerAddressByFeature[_feature];
         return true; 
     }

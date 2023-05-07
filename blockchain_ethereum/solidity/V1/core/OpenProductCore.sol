@@ -17,14 +17,17 @@ import "./OpenProduct.sol";
 contract OpenProductCore is OpenRolesSecureCore, IOpenVersion, IOpenRolesManaged, IOpenProductCore { 
 
     using LOpenUtilities for address; 
+    using LOpenUtilities for uint256;
 
     string name = "RESERVED_OPEN_PRODUCT_CORE"; 
-    uint256 version = 7; 
+    uint256 version             = 8; 
 
     string openAdminRole        = "RESERVED_OPEN_ADMIN_ROLE";
     string productManagerRole   = "PRODUCT_MANAGER_ROLE";
+    string productViewerRole    = "PRODUCT_VIEWER_ROLE";
 
-    address[] products; 
+    address [] productLog;      // log of all products created and managed
+    address[] products;         // products in use
     uint256[] ids; 
 
     string registerCA               = "RESERVED_OPEN_REGISTER_CORE";
@@ -35,7 +38,7 @@ contract OpenProductCore is OpenRolesSecureCore, IOpenVersion, IOpenRolesManaged
     IOpenRegister registry; 
     IOpenProductSecuritization security; 
 
-    string [] roleNames = [openAdminRole, productManagerRole]; 
+    string [] roleNames = [openAdminRole, productManagerRole, productViewerRole]; 
 
     mapping(string=>bool) hasDefaultFunctionsByRole;
     mapping(string=>string[]) defaultFunctionsByRole;
@@ -101,13 +104,17 @@ contract OpenProductCore is OpenRolesSecureCore, IOpenVersion, IOpenRolesManaged
         return knownByProductAddress[_product];
     }
 
+    function getProductLog() view external returns( address[] memory _products){
+        require(isSecure(productManagerRole, "getProductLog"), " product admin only ");
+        return productLog;
+    }   
+
     function createProduct(string memory _name, uint256 _price, string memory _currency, address _erc20) override external returns (address _productAddress) {
         require(isSecure(productManagerRole, "createProduct")," product admin only ");
         uint256 productId_ = productIndex++;
         ids.push(productId_);
         _productAddress = address(new OpenProduct( address(registry), productId_, _name, _price, _currency, _erc20));
-        security.secureProduct(_productAddress);
-        productsByName[_name].push(_productAddress); 
+        security.secureProduct(_productAddress);       
         addProductInternal(_productAddress);
         return _productAddress;
     }
@@ -130,11 +137,13 @@ contract OpenProductCore is OpenRolesSecureCore, IOpenVersion, IOpenRolesManaged
     // ====================================== INTERNAL =================================================
 
     function addProductInternal(address _productAddress) internal returns (bool _added) {
-        OpenProduct product = OpenProduct(_productAddress);
-        uint256 productId_ = product.getId(); 
+        OpenProduct product_ = OpenProduct(_productAddress);
+        uint256 productId_ = product_.getId(); 
         if(!knownByProductId[productId_]){
-            productAddressByProductId[product.getId()] = _productAddress; 
+            productsByName[product_.getName()].push(_productAddress);
+            productAddressByProductId[product_.getId()] = _productAddress; 
             products.push(_productAddress);
+            productLog.push(_productAddress);
             knownByProductAddress[_productAddress] = true; 
             knownByProductId[productId_] = true; 
             return true; 
@@ -143,11 +152,13 @@ contract OpenProductCore is OpenRolesSecureCore, IOpenVersion, IOpenRolesManaged
     }
 
     function removeProductInternal(address _productAddress) internal returns (bool _removed){
-        OpenProduct product = OpenProduct(_productAddress);
-        uint256 productId_ = product.getId(); 
+        OpenProduct product_ = OpenProduct(_productAddress);
+        uint256 productId_ = product_.getId(); 
         if(knownByProductId[productId_]){
-            delete productAddressByProductId[product.getId()]; 
-            _productAddress.remove(products);
+            delete productAddressByProductId[product_.getId()]; 
+            delete productsByName[product_.getName()];
+            products = _productAddress.remove(products);
+            ids = productId_.remove(ids);
             delete knownByProductAddress[_productAddress]; 
             delete knownByProductId[productId_]; 
             return true; 
@@ -162,6 +173,7 @@ contract OpenProductCore is OpenRolesSecureCore, IOpenVersion, IOpenRolesManaged
         hasDefaultFunctionsByRole[productManagerRole] = true; 
         defaultFunctionsByRole[productManagerRole].push("createProduct");
         defaultFunctionsByRole[productManagerRole].push("removeProduct");
+        defaultFunctionsByRole[productManagerRole].push("getProductLog");
         return true;
     }
 }
